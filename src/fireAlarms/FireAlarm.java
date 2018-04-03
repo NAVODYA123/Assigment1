@@ -8,9 +8,15 @@ import java.net.Socket;
 import java.util.Random;
 
 public class FireAlarm implements SensorInterface {
+	/* Begin Variable Area*/
+	
 	Randoms random = new Randoms();
-	double temp = 25;
-	double battery=100.0;
+	private double temp = 25;
+	private double battery=100.0;
+	private int smokeLevel=0;
+	private int co2=300;
+	/* End Variable Area*/
+	
 	@Override
 	public double getTemperature() {
 		Randoms random = new Randoms();
@@ -18,7 +24,8 @@ public class FireAlarm implements SensorInterface {
 		// random incident of fire
 		// its only 8% possible to have a fire
 		if (random.getRandomDouble(1, 100, 2) < 0.08) {
-			temp = 300;
+			//fire temperature
+			temp = random.getRandom(51, 300);;
 		}
 
 		int rand = random.getRandom(-10, 10);
@@ -41,14 +48,26 @@ public class FireAlarm implements SensorInterface {
 
 	@Override
 	public int getSmokeLevel() {
-		// TODO Auto-generated method stub
-		return 0;
+		
+		//random smoke levels with 20%  probability for of high smoke levels
+		if (random.getRandomDouble(1, 100, 2) < 0.2) {
+			smokeLevel = random.getRandom(7, 10);
+		}else {
+			smokeLevel = random.getRandom(0, 6);
+		}
+		return smokeLevel;
 	}
 
 	@Override
 	public int getCo2Level() {
-		// TODO Auto-generated method stub
-		return 0;
+		//random co2 levels with 20% probability for high co2 levels
+		if (random.getRandomDouble(1, 100, 2) < 0.2) {
+			co2 = random.getRandom(400, 500);
+		}else {
+			co2 = random.getRandom(280, 340);
+		}
+		return co2;
+		
 	}
 
 	private void SendReadings() throws IOException {
@@ -77,10 +96,20 @@ public class FireAlarm implements SensorInterface {
 		FireAlarm client = new FireAlarm();
 		// client. SendReadings();
 
-		for (int x = 0; x < 15; x++) {
+		//for (int x = 0; x < 15; x++) {
 
-			System.out.println(client.getTemperature());
-		}
+		//	System.out.println(client.getTemperature());
+		//}
+		Auth auth=new Auth();
+		String value = "testing testing";
+		  
+	      System.out.println("decrypting");
+	      String encrypted = auth.encrypt("password",value);
+	  
+	      System.out.println("decrypting");
+	      String decrypted = auth.decrypt( "password",encrypted);
+	     
+	      System.out.println("Decrypted text: " + decrypted);
 
 	}
 

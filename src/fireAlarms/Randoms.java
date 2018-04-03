@@ -1,9 +1,11 @@
 package fireAlarms;
 
+import java.security.SecureRandom;
 import java.util.Random;
 
 public class Randoms {
 	Random random;
+	SecureRandom secure;
 	
 	public Randoms() {
 		random = new Random();
@@ -24,6 +26,13 @@ public class Randoms {
 	public double getRandomDouble(int min,int max) {
 		
 		return ((random.nextInt(max-min) + min)/(10.0));
+		
+	}
+	
+	//For authentication
+	public String getSecureRandom() {
+		
+		return Integer.toString((secure.nextInt(1000000))) ;
 		
 	}
 }
