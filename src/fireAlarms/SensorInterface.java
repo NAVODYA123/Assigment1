@@ -4,7 +4,7 @@ package fireAlarms;
 interface  SensorInterface {
 
 	public double getTemperature();
-	public int getBatteryLevel();
+	public double getBatteryLevel();
 	public int getSmokeLevel();
 	public int getCo2Level();
 }
