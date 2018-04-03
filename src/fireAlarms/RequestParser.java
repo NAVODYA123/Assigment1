@@ -21,7 +21,7 @@ public class RequestParser implements RequestParserInterface {
 		// return the response code in the response message send by the server
 		// if their is an error in the response message this will return -1 as an error
 		// code
-	//	try {
+		try {
 			String[] code = response.replaceAll("\\{", "").replaceAll("\\}", "").split(",");
 			//check if the response contains a value of header in its first value pair
 			
@@ -31,10 +31,10 @@ public class RequestParser implements RequestParserInterface {
 			}
 			//when a header section not found return -1 as an error code
 			return -1;
-	//	} catch (Exception e) {
+		} catch (Exception e) {
 			//return error code -1 if error occur while parsing the response
-	//		return -1;
-	//	}
+			return -1;
+		}
 
 	}
 
@@ -53,7 +53,7 @@ public class RequestParser implements RequestParserInterface {
 	@Override
 	public String getAuthToken(String response) throws ResponseException {
 		// this will extract the token send by the server to complete the authentication
-		//try {
+		try {
 			
 			if (Response(response) == this.responseOk) {
 				String[] items = response.replaceAll("\\{", "").replaceAll("\\}", "").split(",");
@@ -70,11 +70,11 @@ public class RequestParser implements RequestParserInterface {
 			}
 			
 			return "";
-		//} catch (Exception e) {
+		} catch (Exception e) {
 			
-		//}
+		}
 		//if error occur parsing throw an exception
-		//throw new  ResponseException("Error Parsing Response");
+		throw new  ResponseException("Error Parsing Response");
 		
 	}
 
