@@ -5,13 +5,25 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
+import java.util.Random;
 
 public class FireAlarm implements SensorInterface {
 
 	@Override
-	public int getTemperature() {
-		// TODO Auto-generated method stub
-		return 0;
+	public double getTemperature() {
+		Randoms random=new Randoms();
+		double temp=25;
+		int rand = random.getRandom(-10,10);
+		System.out.println("rand : "+rand);
+		if (rand < 0) {
+			temp += random.getRandomDouble(20, 80);
+			
+		} else {
+			temp -=random.getRandomDouble(20, 80);
+			
+		}
+		
+		return temp;
 	}
 
 	@Override
@@ -31,7 +43,10 @@ public class FireAlarm implements SensorInterface {
 		// TODO Auto-generated method stub
 		return 0;
 	}
+	
 
+	
+	
 	private void SendReadings() throws IOException {
 
         // Make connection
@@ -39,6 +54,8 @@ public class FireAlarm implements SensorInterface {
         Socket socket = new Socket("localhost", 3001);
         PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
         BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+        
+        System.out.println("Connected");
         
         while (true) {
         	String cmd=in.readLine();
@@ -53,8 +70,14 @@ public class FireAlarm implements SensorInterface {
 
    
     public static void main(String[] args) throws Exception {
+    	
         FireAlarm client = new FireAlarm();
-        client. SendReadings();
+        //client. SendReadings();
+        
+        for(int x=0;x<15;x++) {
+        	
+        	System.out.println(client.getTemperature());
+        }
        
     }
 	
