@@ -17,7 +17,7 @@ public class FireAlarm implements SensorInterface {
 	private double battery = 100.0;
 	private int smokeLevel = 0;
 	private int co2 = 300;
-	private String alarmID="23-13";
+	private String alarmId="23-13";
 	private RequestParser parser =new RequestParser();
 	/* End Variable Area */
 
@@ -88,14 +88,21 @@ public class FireAlarm implements SensorInterface {
 			System.out.println("Connected");
 			
 			//Authentication request
-		
-			out.println();
-
+			
+			out.println(parser.auhtInit(alarmId));
+			//waiting for response
 			while (true) {
-				String cmd = in.readLine();
+				String response = in.readLine();
 
-				if (!cmd.isEmpty()) {
-					System.out.println(cmd);
+				if (!response.isEmpty()) {
+					try {
+						System.out.println(parser.getAuthChallangeToken(response));
+						
+					} catch (Exception e) {
+						// TODO: handle exception
+					}
+					
+					//System.out.println(cmd);
 				}
 
 			}
