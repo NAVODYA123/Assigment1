@@ -18,6 +18,7 @@ public class FireAlarm implements SensorInterface {
 	private int smokeLevel = 0;
 	private int co2 = 300;
 	private String alarmID="23-13";
+	private RequestParser parser =new RequestParser();
 	/* End Variable Area */
 
 	@Override
@@ -74,7 +75,7 @@ public class FireAlarm implements SensorInterface {
 
 	}
 
-	private void SendReadings() {
+	private void connectToServer() {
 
 		// Make connection
 
@@ -87,7 +88,7 @@ public class FireAlarm implements SensorInterface {
 			System.out.println("Connected");
 			
 			//Authentication request
-			
+		
 			out.println();
 
 			while (true) {
@@ -112,14 +113,15 @@ public class FireAlarm implements SensorInterface {
 		FireAlarm client = new FireAlarm();
 		// client. SendReadings();
 
-		// for (int x = 0; x < 15; x++) {
-
+		 for (int x = 0; x < 15; x++) {
+			System.out.println( client.getCo2Level());
 		// System.out.println(client.getTemperature());
-		// }
+		}
 		Auth auth = new Auth();
-		RequestParser parser=new RequestParser();
 		
-		System.out.println(parser.getAuthToken("\"header\":\"20\",\"authToken\":\"NDQ0NDQ0NDQ0\""));
+		RequestParser parser=new RequestParser();
+		parser.auhtInit("22-78");
+		//System.out.println(parser.getAuthToken("\"header\":\"20\",\"authToken\":\"NDQ0NDQ0NDQ0\""));
 
 	}
 

@@ -1,6 +1,10 @@
 package fireAlarms;
 
+import java.io.Console;
+import java.util.logging.Logger;
+
 import org.apache.commons.codec.binary.Base64;
+import org.json.simple.*;
 
 public class RequestParser implements RequestParserInterface {
 	private int responseOk = 20;
@@ -11,24 +15,27 @@ public class RequestParser implements RequestParserInterface {
 
 	@Override
 	public String auhtInit(String alarmId) {
-
-		return Base64.encodeBase64String(("{\"id\":" + alarmId + ",\"requestType\":\"authInit\"}").getBytes());
+		JSONObject json=new JSONObject();
+		json.put("id", alarmId);
+		json.put("requestType", "authInit");
+		System.out.println(json.toJSONString());
+		return Base64.encodeBase64String((json.toJSONString().getBytes()));
 	}
 
 	@Override
 	public int Response(String response) {
-
+		
 		// return the response code in the response message send by the server
 		// if their is an error in the response message this will return -1 as an error
 		// code
 		try {
-			String[] code = response.replaceAll("\\{", "").replaceAll("\\}", "").split(",");
-			//check if the response contains a value of header in its first value pair
+			//create a JSON object from the response parameter by decoding it and parsing
+			JSONObject json=(JSONObject)JSONValue.parse(Base64.decodeBase64(response).toString());
 			
-			if (code[0].split(":")[0].equals("\"header\"")) {
+			if (json.containsKey("header")) {
 				//extract the response code and return it
-				return Integer.parseInt(code[0].split(":")[1].replaceAll("\"", ""));
-			}
+				return Integer.parseInt(json.get("header").toString());
+			} 
 			//when a header section not found return -1 as an error code
 			return -1;
 		} catch (Exception e) {
@@ -39,43 +46,69 @@ public class RequestParser implements RequestParserInterface {
 	}
 
 	@Override
-	public String exchangeCypher(String encrypted) {
+	public String exchangeCypher(String encrypted,String pass) {
+		try {
+			Auth auth=new Auth();
+			String decrypt= auth.decrypt(pass, encrypted);
+			int authNext=Integer.parseInt(decrypt)+1;
+			return String.valueOf(auth.encrypt(pass,String.valueOf(authNext)));
+		} catch (Exception e) {
+			// TODO: handle exception
+			System.out.println("Error in server auth reply...\n");
+			return "-1";
+		}
+		
+	
+	}
+
+	@Override
+	public String sensorReadings(String temp, String battery, String smoke, String co2,String token) {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
-	public String sensorReadings(String temp, String battery, String smoke, String co2) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public String getAuthToken(String response) throws ResponseException {
+	public String getAuthChallangeToken(String response) throws ResponseException {
 		// this will extract the token send by the server to complete the authentication
 		try {
-			
+			//create a json object from the response parameter
+			JSONObject json=(JSONObject)JSONValue.parse(Base64.decodeBase64(response).toString());
 			if (Response(response) == this.responseOk) {
-				String[] items = response.replaceAll("\\{", "").replaceAll("\\}", "").split(",");
-				for (String code : items) {
-					String[] item = code.split(":");
-					// check if it contains authToken header and its value is base64 if so return token
-				
-					if (item[0].contains("authToken") & Base64.isBase64(item[1].replaceAll("\"", ""))) {
-						return item[1].replaceAll("\"", "");
-					}
+				//check if there is token field in the json and it is a base64 encoded one
+				if(json.containsKey("authToken") &  Base64.isBase64(json.get("authToken").toString())) {
+					//return the token by decoding base64 string
+					return new String (Base64.decodeBase64(json.get("authToken").toString()));
 				}
+				
 				//if no tokens found throw a custom exception
 				throw new  ResponseException("No Auth Tokens Found");
 			}
 			
-			return "";
-		} catch (Exception e) {
 			
+		} catch (Exception e) {
+			throw new  ResponseException("Error Parsing Response");
 		}
 		//if error occur parsing throw an exception
 		throw new  ResponseException("Error Parsing Response");
 		
+	}
+	
+	@Override
+	public String authChallangeReply(String alarmId,String authNext) throws Exception{
+		JSONObject json=new JSONObject();
+		json.put("header",ResponseOk());
+		json.put("id", alarmId);
+		json.put("requestType", "authRep");
+		json.put("authRepToken", authNext);
+		
+		
+		return Base64.encodeBase64String((json.toJSONString().getBytes()));
+	}
+	
+	@Override
+	public String getSessionToken(String response) {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 	/*
@@ -116,5 +149,9 @@ public class RequestParser implements RequestParserInterface {
 	public int InvalidResponse() {
 		return invalidResponse;
 	}
+
+	
+
+	
 
 }
