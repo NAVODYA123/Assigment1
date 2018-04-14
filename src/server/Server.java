@@ -6,9 +6,11 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.HashMap;
 
 public class Server {
 	
+	private static HashMap<String,PrintWriter> alarmList=new HashMap<String, PrintWriter>();
 	
 	public static void main(String[] args) throws Exception {
         System.out.println("The Fire Alarm Monitor server is running.");
@@ -24,7 +26,13 @@ public class Server {
 
 
     private static class Handler extends Thread {
+    	//Variables
     	private Socket socket;
+    	private String response="";
+    	
+    	//End Variables
+    	
+    	
         public Handler(Socket socket) {
             this.socket = socket;
         }
@@ -44,10 +52,19 @@ public class Server {
               
 
                 System.out.println("client Connecting");
+                
                 while (true) {
-                  
                     
-                    
+                    response = in.readLine();
+                    if (response == null) {
+                        return;
+                    }
+                    synchronized (alarmList) {
+                        if (!alarmList.containsKey(arg0)) {
+                            names.add(name);
+                            break;
+                        }
+                    }
                 }
                 
                 

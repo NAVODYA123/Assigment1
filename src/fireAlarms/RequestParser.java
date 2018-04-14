@@ -125,7 +125,7 @@ public class RequestParser implements RequestParserInterface {
 		json.put("header",ResponseOk());
 		json.put("id", alarmId);
 		json.put("type", "authReply");
-		json.put("authRepToken", authNext);
+		json.put("authRepToken", Base64.encodeBase64String(authNext.getBytes()));
 		
 		
 		return Base64.encodeBase64String((json.toJSONString().getBytes()));
