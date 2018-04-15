@@ -93,9 +93,16 @@ public class FireAlarm implements SensorInterface {
 			//waiting for response
 			while (true) {
 				String response = in.readLine();
-
-				if (!response.isEmpty()) {
+				//check the server response to check whether the alarm it already exists in the server
+				if(!response.isEmpty() & parser.Response(response)==parser.AlarmExists()){
+					//if the alarm id already exists regenerate an new one and send it back
+					System.out.println("Alarm id exists -sending a new one");
+					alarmId=parser.auhtInit("23-"+String.valueOf(random.getRandom(1, 80)));
+					out.println(alarmId);
+				}
+				else if (!response.isEmpty() & parser.getResponseType(response).equals("authToken")) {
 					try {
+						
 						System.out.println(parser.getAuthChallangeToken(response));
 						
 					} catch (Exception e) {
@@ -118,16 +125,16 @@ public class FireAlarm implements SensorInterface {
 	public static void main(String[] args) throws Exception {
 
 		FireAlarm client = new FireAlarm();
-		// client. SendReadings();
+		client. connectToServer();
 
-		 for (int x = 0; x < 15; x++) {
+		/* for (int x = 0; x < 15; x++) {
 			System.out.println( client.getCo2Level());
 		// System.out.println(client.getTemperature());
 		}
 		Auth auth = new Auth();
 		
 		RequestParser parser=new RequestParser();
-		parser.auhtInit("22-78");
+		parser.auhtInit("22-78");*/
 		//System.out.println(parser.getAuthToken("\"header\":\"20\",\"authToken\":\"NDQ0NDQ0NDQ0\""));
 
 	}
