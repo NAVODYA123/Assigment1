@@ -86,13 +86,50 @@ public class RequestParser implements RequestParserInterface {
 		
 	
 	}
+	
 
 	@Override
-	public String sensorReadings(String temp, String battery, String smoke, String co2,String token) {
-		// TODO Auto-generated method stub
-		return null;
+	public String sensorReadingMessage(String temp,String battery,String smoke,String co2,String token,String alarmId) {
+		JSONObject json=new JSONObject();
+		json.put("id", alarmId);
+		json.put("type", "sensorReading");
+		json.put("token", token);
+		json.put("temp", temp);
+		json.put("battery", battery);
+		json.put("smoke", smoke);
+		json.put("co2", co2);
+		
+		
+		//System.out.println(json.toJSONString());
+		return Base64.encodeBase64String((json.toJSONString().getBytes()));
+	}
+	
+	@Override
+	public String sensorReadingsMessage(JSONArray readings,String token,String alarmId) {
+		JSONObject json=new JSONObject();
+		
+		json.put("id", alarmId);
+		json.put("type", "sensorReading[]");
+		json.put("token", token);
+		json.put("readings", readings);
+		
+		//System.out.println(json.toJSONString());
+		return Base64.encodeBase64String((json.toJSONString().getBytes()));
 	}
 
+	@Override
+	public JSONObject sensorReadings(String temp, String battery, String smoke, String co2) {
+		JSONObject json=new JSONObject();
+		
+		json.put("temp", temp);
+		json.put("battery", battery);
+		json.put("smoke", smoke);
+		json.put("co2", co2);
+		json.put("battery", battery);
+		
+		//System.out.println(json.toJSONString());
+		return json;
+	}
 	@Override
 	public String getAuthChallangeToken(String response) throws ResponseException {
 		// this will extract the token send by the server to complete the authentication
@@ -153,6 +190,8 @@ public class RequestParser implements RequestParserInterface {
 		}
 		
 	}
+	
+	
 
 	/*
 	 * Request response states getter methods
@@ -192,6 +231,10 @@ public class RequestParser implements RequestParserInterface {
 	public int InvalidResponse() {
 		return invalidResponse;
 	}
+
+
+
+	
 
 
 	

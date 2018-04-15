@@ -7,6 +7,10 @@ import java.io.PrintWriter;
 import java.net.Socket;
 import java.util.Random;
 import java.util.Timer;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.codec.binary.Base64;
 import org.json.simple.JSONArray;
@@ -20,15 +24,15 @@ public class FireAlarm extends Timer implements SensorInterface {
 	private double battery = 100.0;
 	private int smokeLevel = 0;
 	private int co2 = 300;
-	private String alarmId = "23-13";
+	private static String alarmId = "23-13";
 	private RequestParser parser = new RequestParser();
 	private String key = "IT16107274";
-	private String sessionToken;
-	private Socket socket;
-	private PrintWriter writer ;
-	private BufferedReader reader ;
-	private boolean authState=false;
-	
+	private static String sessionToken;
+	private static Socket socket;
+	private static PrintWriter writer;
+	private static BufferedReader reader;
+	private static boolean authState = false;
+	private static JSONArray readings = new JSONArray();
 	/* End Variable Area */
 
 	@Override
@@ -44,7 +48,7 @@ public class FireAlarm extends Timer implements SensorInterface {
 		}
 
 		int rand = random.getRandom(-10, 10);
-		System.out.println("rand : " + rand);
+		// System.out.println("rand : " + rand);
 		if (rand < 0) {
 			temp += random.getRandomDouble(20, 80);
 
@@ -84,11 +88,10 @@ public class FireAlarm extends Timer implements SensorInterface {
 		return co2;
 
 	}
-	
+
 	private void readingWriteToFile() {
-		
+
 	}
-	
 
 	private boolean authenticate(PrintWriter out, BufferedReader in) {
 		try {
@@ -145,34 +148,33 @@ public class FireAlarm extends Timer implements SensorInterface {
 
 		// Make connection
 
-		
 		try {
 			socket = new Socket("localhost", 3001);
-			 writer = new PrintWriter(socket.getOutputStream(), true);
-			 reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+			writer = new PrintWriter(socket.getOutputStream(), true);
+			reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 
 			System.out.println("Connected");
 
-			if(!authenticate(writer, reader)) {
+			if (!authenticate(writer, reader)) {
 				socket.close();
-				
+
 			}
-			
-			authState=true;
+
+			authState = true;
 			System.out.println("\nAuthentication Successful");
-			//return true;
-			
+			// return true;
+
 			System.out.println("\nListening to messages");
-			
-			while(true) {
+
+			while (true) {
 				String response = reader.readLine();
 				System.out.println(response);
 			}
-			
+
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
-			
+
 		}
 
 	}
@@ -180,16 +182,15 @@ public class FireAlarm extends Timer implements SensorInterface {
 	public static void main(String[] args) throws Exception {
 
 		FireAlarm client = new FireAlarm();
-		
+
 		System.out.println("Initiating Socket Thread...");
 		Runnable runnable = new Runnable() {
 			@Override
 			public void run() {
-				
+
 				try {
-					client.connectToServer()	;					
-						
-					
+					client.connectToServer();
+
 				} catch (Exception e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
@@ -204,21 +205,65 @@ public class FireAlarm extends Timer implements SensorInterface {
 		System.out.println("Starting Thread...");
 		thread.start();
 		System.out.println("Socket connetions running seperatley...");
-		
-		JSONObject json =new JSONObject();
-		json.put("name", "muvi");
-		
-		JSONArray jarray=new JSONArray();
-		
-		for(int x =0;x<10;x++) {
-			jarray.add(json);
-		}
-		
-		System.out.println(jarray.toJSONString());
 
-		
+		Runnable readerRunnable = new Runnable() {
+
+			@Override
+			public void run() {
+
+				RequestParser parser = new RequestParser();
+
+				// synchronized (readings) {
+
+				System.out.println("Reading sensors " + authState);
+
+				if (authState == true) {
+					synchronized (readings) {
+						try {
+							JSONObject values = parser.sensorReadings(String.valueOf(client.getTemperature()),
+									String.valueOf(client.getBatteryLevel()), String.valueOf(client.getSmokeLevel()),
+									String.valueOf(client.getCo2Level()));
+
+							System.out.println(values.toJSONString());
+
+							readings.add(values);
+						} catch (Exception e) {
+							System.out.println(e);
+							// TODO: handle exception
+						}
+					}
+				}
+
+				// }
+
+			}
+		};
+
+		Runnable senderRunnable = new Runnable() {
+
+			@Override
+			public void run() {
+				// System.out.println("sending Reading sensors " +authState);
+				RequestParser parser = new RequestParser();
+
+				if (authState == true) {
+					synchronized (readings) {
+						System.out.println("sending Reading sensors");
+						writer.println(parser.sensorReadingsMessage(readings, sessionToken, alarmId));
+						readings.clear();
+					}
+				}
+
+			}
+		};
+
+		System.out.println("\nServices\n");
+		ScheduledExecutorService readerService = Executors.newSingleThreadScheduledExecutor();
+		readerService.scheduleWithFixedDelay(readerRunnable, 0, 10, TimeUnit.SECONDS);
+
+		ScheduledExecutorService senderService = Executors.newScheduledThreadPool(2);
+		senderService.scheduleWithFixedDelay(senderRunnable, 60, 60, TimeUnit.SECONDS);
 
 	}
 
-	
 }
