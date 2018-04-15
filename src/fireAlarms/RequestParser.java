@@ -28,12 +28,12 @@ public class RequestParser implements RequestParserInterface {
 		
 		
 		try {
-			JSONObject json=(JSONObject)JSONValue.parse(Base64.decodeBase64(response).toString());
+			JSONObject json=(JSONObject)JSONValue.parse(new String(Base64.decodeBase64(response)));
 			if (Response(response) == this.responseOk) {
 				
 				if(json.containsKey("type") ) {
 					//return the token by decoding base64 string
-					return new String (json.get("type").toString());
+					return json.get("type").toString();
 				}
 				
 				return "-1";
@@ -56,7 +56,7 @@ public class RequestParser implements RequestParserInterface {
 		// code
 		try {
 			//create a JSON object from the response parameter by decoding it and parsing
-			JSONObject json=(JSONObject)JSONValue.parse(Base64.decodeBase64(response).toString());
+			JSONObject json=(JSONObject)JSONValue.parse(new String(Base64.decodeBase64(response)));
 			
 			if (json.containsKey("header")) {
 				//extract the response code and return it
@@ -98,12 +98,12 @@ public class RequestParser implements RequestParserInterface {
 		// this will extract the token send by the server to complete the authentication
 		try {
 			//create a json object from the response parameter
-			JSONObject json=(JSONObject)JSONValue.parse(Base64.decodeBase64(response).toString());
+			JSONObject json=(JSONObject)JSONValue.parse(new String(Base64.decodeBase64(response)));
 			if (Response(response) == this.responseOk) {
 				//check if there is token field in the json and it is a base64 encoded one
-				if(json.containsKey("authToken") &  Base64.isBase64(json.get("authToken").toString())) {
+				if(json.containsKey("authToken")) {
 					//return the token by decoding base64 string
-					return new String (Base64.decodeBase64(json.get("authToken").toString()));
+					return new String (json.get("authToken").toString());
 				}
 				
 				//if no tokens found throw a custom exception
@@ -125,7 +125,7 @@ public class RequestParser implements RequestParserInterface {
 		json.put("header",ResponseOk());
 		json.put("id", alarmId);
 		json.put("type", "authReply");
-		json.put("authRepToken", Base64.encodeBase64String(authNext.getBytes()));
+		json.put("authRepToken",authNext);
 		
 		
 		return Base64.encodeBase64String((json.toJSONString().getBytes()));
@@ -133,8 +133,25 @@ public class RequestParser implements RequestParserInterface {
 	
 	@Override
 	public String getSessionToken(String response) {
-		// TODO Auto-generated method stub
-		return null;
+		try {
+			//create a json object from the response parameter
+			JSONObject json=(JSONObject)JSONValue.parse(new String(Base64.decodeBase64(response)));
+			if (Response(response) == this.responseOk) {
+				//check if there is token field in the json
+				if(json.containsKey("token")) {
+					//return the token 
+					return new String (json.get("token").toString());
+				}
+				
+				
+			}
+			//if no tokens found throw -1
+			return "-1";
+			
+		} catch (Exception e) {
+			return "-1";
+		}
+		
 	}
 
 	/*

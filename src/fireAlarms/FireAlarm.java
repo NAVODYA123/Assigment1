@@ -19,6 +19,8 @@ public class FireAlarm implements SensorInterface {
 	private int co2 = 300;
 	private String alarmId="23-13";
 	private RequestParser parser =new RequestParser();
+	private String key="IT16107274";
+	private String sessionToken;
 	/* End Variable Area */
 
 	@Override
@@ -93,23 +95,38 @@ public class FireAlarm implements SensorInterface {
 			//waiting for response
 			while (true) {
 				String response = in.readLine();
+				System.out.println(response);
+				System.out.println(parser.getResponseType(response));
 				//check the server response to check whether the alarm it already exists in the server
-				if(!response.isEmpty() & parser.Response(response)==parser.AlarmExists()){
+				if(!response.isEmpty() && parser.Response(response)==parser.AlarmExists()){
 					//if the alarm id already exists regenerate an new one and send it back
 					System.out.println("Alarm id exists -sending a new one");
-					alarmId=parser.auhtInit("23-"+String.valueOf(random.getRandom(1, 80)));
-					out.println(alarmId);
+					
+					alarmId="23-"+String.valueOf(random.getRandom(1, 80));
+					out.println(parser.auhtInit(alarmId));
 				}
-				else if (!response.isEmpty() & parser.getResponseType(response).equals("authToken")) {
+				else if (!response.isEmpty() && parser.getResponseType(response).equals("authToken")) {
 					try {
-						
-						System.out.println(parser.getAuthChallangeToken(response));
-						
+						System.out.println(Auth.decrypt(key, parser.getAuthChallangeToken(response)));
+						String reply=parser.authChallangeReply(alarmId, (Auth.encrypt(key,String.valueOf((Integer.parseInt(Auth.decrypt(key, parser.getAuthChallangeToken(response)))+1)))));
+						System.out.println(reply);
+						out.println(reply);
+						//break;
 					} catch (Exception e) {
 						// TODO: handle exception
 					}
 					
 					//System.out.println(cmd);
+				}else if (!response.isEmpty() && parser.getResponseType(response).equals("authOk")) {
+					//System.out.println("Here");
+					sessionToken=parser.getSessionToken(response);
+					break;
+				//	System.out.println(sessionToken);
+					
+				}else if (!response.isEmpty() && parser.getResponseType(response).equals("authFail")) {
+					System.out.println("auth Failed");
+					System.out.println("Program Exist");
+					socket.close();
 				}
 
 			}
