@@ -1,6 +1,9 @@
 package fireAlarms;
 
 import java.io.Console;
+import java.util.Date;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.logging.Logger;
 
 import org.apache.commons.codec.binary.Base64;
@@ -13,7 +16,7 @@ public class RequestParser implements RequestParserInterface {
 	private int readingRequest = 30;
 	private int alarmExists = 40;
 	private int invalidResponse = -1;
-
+	private DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
 	@Override
 	public String auhtInit(String alarmId) {
 		JSONObject json=new JSONObject();
@@ -89,11 +92,17 @@ public class RequestParser implements RequestParserInterface {
 	
 
 	@Override
-	public String sensorReadingMessage(String temp,String battery,String smoke,String co2,String token,String alarmId) {
+	public String sensorReadingMessage(String temp,String battery,String smoke,String co2,String token,String alarmId,String requestId) {
 		JSONObject json=new JSONObject();
+		json.put("header", responseOk);
 		json.put("id", alarmId);
+		json.put("requestId", requestId);
 		json.put("type", "sensorReading");
 		json.put("token", token);
+		
+		Date date = new Date();;
+		
+		json.put("time", dateFormat.format(date));
 		json.put("temp", temp);
 		json.put("battery", battery);
 		json.put("smoke", smoke);
@@ -121,11 +130,14 @@ public class RequestParser implements RequestParserInterface {
 	public JSONObject sensorReadings(String temp, String battery, String smoke, String co2) {
 		JSONObject json=new JSONObject();
 		
+		Date date = new Date();;
+		
+		json.put("time", dateFormat.format(date));
 		json.put("temp", temp);
 		json.put("battery", battery);
 		json.put("smoke", smoke);
 		json.put("co2", co2);
-		json.put("battery", battery);
+		
 		
 		//System.out.println(json.toJSONString());
 		return json;
@@ -191,7 +203,28 @@ public class RequestParser implements RequestParserInterface {
 		
 	}
 	
-	
+	@Override
+	public String getClientId(String response) {
+		try {
+			//create a json object from the response parameter
+			JSONObject json=(JSONObject)JSONValue.parse(new String(Base64.decodeBase64(response)));
+			if (Response(response) == this.responseOk) {
+				//check if there is token field in the json
+				if(json.containsKey("requestId")) {
+					//return the token 
+					return new String (json.get("requestId").toString());
+				}
+				
+				
+			}
+			//if no tokens found throw -1
+			return "-1";
+			
+		} catch (Exception e) {
+			return "-1";
+		}
+	}
+
 
 	/*
 	 * Request response states getter methods
@@ -232,6 +265,26 @@ public class RequestParser implements RequestParserInterface {
 		return invalidResponse;
 	}
 
+	@Override
+	public String alertMessage(String msg,String alarmId,String token) {
+		JSONObject json=new JSONObject();
+		json.put("header", responseOk);
+		json.put("id", alarmId);
+	
+		json.put("type", "alert");
+		json.put("token", token);
+		
+		Date date = new Date();;
+		
+	
+		json.put("message",dateFormat.format(date)+"\n\t"+ msg);
+		
+		
+		//System.out.println(json.toJSONString());
+		return Base64.encodeBase64String((json.toJSONString().getBytes()));
+	}
+
+	
 
 
 	

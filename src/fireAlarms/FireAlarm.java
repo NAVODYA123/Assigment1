@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
+import java.util.Calendar;
 import java.util.Random;
 import java.util.Timer;
 import java.util.concurrent.Executor;
@@ -43,13 +44,13 @@ public class FireAlarm extends Timer implements SensorInterface {
 		// its only 8% possible to have a fire
 		if (random.getRandomDouble(1, 100, 2) < 0.08) {
 			// fire temperature
-			temp = random.getRandom(51, 300);
+			temp = random.getRandom(100, 300);
 			;
 		}
 
 		int rand = random.getRandom(-10, 10);
 		// System.out.println("rand : " + rand);
-		if (rand < 0) {
+		if (rand > 0) {
 			temp += random.getRandomDouble(20, 80);
 
 		} else {
@@ -57,19 +58,28 @@ public class FireAlarm extends Timer implements SensorInterface {
 
 		}
 
+		if (temp < 0) {
+			return -temp;
+		}
+
 		return temp;
 	}
 
 	@Override
 	public double getBatteryLevel() {
-		return (battery -= random.getRandomDouble(10, 30));
+		battery -= random.getRandomDouble(10, 30);
+		if (battery < 0) {
+			battery = 100;
+			battery -= random.getRandomDouble(10, 30);
+		}
+		return battery;
 	}
 
 	@Override
 	public int getSmokeLevel() {
 
 		// random smoke levels with 20% probability for of high smoke levels
-		if (random.getRandomDouble(1, 100, 2) < 0.2) {
+		if (random.getRandomDouble(1, 100, 2) < 0.8) {
 			smokeLevel = random.getRandom(7, 10);
 		} else {
 			smokeLevel = random.getRandom(0, 6);
@@ -86,10 +96,6 @@ public class FireAlarm extends Timer implements SensorInterface {
 			co2 = random.getRandom(280, 340);
 		}
 		return co2;
-
-	}
-
-	private void readingWriteToFile() {
 
 	}
 
@@ -169,6 +175,14 @@ public class FireAlarm extends Timer implements SensorInterface {
 			while (true) {
 				String response = reader.readLine();
 				System.out.println(response);
+
+				if (!response.isEmpty() && parser.getResponseType(response).equals("sensorReading")) {
+					// System.out.println("Here");
+					writer.println(parser.sensorReadingMessage(String.valueOf(getTemperature()),
+							String.valueOf(getBatteryLevel()), String.valueOf(getSmokeLevel()),
+							String.valueOf(getCo2Level()), sessionToken, alarmId, parser.getClientId(response)));
+
+				}
 			}
 
 		} catch (IOException e) {
@@ -220,13 +234,23 @@ public class FireAlarm extends Timer implements SensorInterface {
 				if (authState == true) {
 					synchronized (readings) {
 						try {
-							JSONObject values = parser.sensorReadings(String.valueOf(client.getTemperature()),
-									String.valueOf(client.getBatteryLevel()), String.valueOf(client.getSmokeLevel()),
+							double temp=client.getTemperature();
+							int smoke=client.getSmokeLevel();
+							JSONObject values = parser.sensorReadings(String.valueOf(temp),
+									String.valueOf(client.getBatteryLevel()), String.valueOf(smoke),
 									String.valueOf(client.getCo2Level()));
 
-							System.out.println(values.toJSONString());
+							// System.out.println(values.toJSONString());
 
 							readings.add(values);
+							
+							if(temp>50) {
+								writer.println(parser.alertMessage(alarmId+": High Temperature levels detected: "+temp+" c", alarmId, sessionToken));
+							}
+							if(smoke>7){
+								writer.println(parser.alertMessage(alarmId+": High Smoke levels detected: "+smoke, alarmId, sessionToken));
+							}
+							
 						} catch (Exception e) {
 							System.out.println(e);
 							// TODO: handle exception
@@ -258,11 +282,13 @@ public class FireAlarm extends Timer implements SensorInterface {
 		};
 
 		System.out.println("\nServices\n");
+		Calendar rightNow = Calendar.getInstance();
 		ScheduledExecutorService readerService = Executors.newSingleThreadScheduledExecutor();
-		readerService.scheduleWithFixedDelay(readerRunnable, 0, 10, TimeUnit.SECONDS);
+		readerService.scheduleWithFixedDelay(readerRunnable, 60 - rightNow.get(Calendar.SECOND), 60, TimeUnit.SECONDS);
 
 		ScheduledExecutorService senderService = Executors.newScheduledThreadPool(2);
-		senderService.scheduleWithFixedDelay(senderRunnable, 60, 60, TimeUnit.SECONDS);
+		senderService.scheduleWithFixedDelay(senderRunnable, 6 - (rightNow.get(Calendar.MINUTE) % 10), 6,
+				TimeUnit.MINUTES);
 
 	}
 
