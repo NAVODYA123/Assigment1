@@ -51,7 +51,7 @@ public class Auth {
             cipher.init(Cipher.DECRYPT_MODE, secret);
             byte[] decrypted = cipher.doFinal(Base64.decodeBase64(encrypted));
 ;
-            //byte[] original = cipher.doFinal(Base64.decodeBase64(decrypted));
+           
 
             return new String(decrypted);
         } catch (Exception ex) {

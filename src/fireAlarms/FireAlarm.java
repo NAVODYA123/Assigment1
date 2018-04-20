@@ -49,7 +49,7 @@ public class FireAlarm extends Timer implements SensorInterface {
 		}
 
 		int rand = random.getRandom(-10, 10);
-		// System.out.println("rand : " + rand);
+		
 		if (rand > 0) {
 			temp += random.getRandomDouble(20, 80);
 
@@ -79,7 +79,7 @@ public class FireAlarm extends Timer implements SensorInterface {
 	public int getSmokeLevel() {
 
 		// random smoke levels with 20% probability for of high smoke levels
-		if (random.getRandomDouble(1, 100, 2) < 0.8) {
+		if (random.getRandomDouble(1, 100, 2) < 0.2) {
 			smokeLevel = random.getRandom(7, 10);
 		} else {
 			smokeLevel = random.getRandom(0, 6);
@@ -107,35 +107,39 @@ public class FireAlarm extends Timer implements SensorInterface {
 			// waiting for response
 			while (true) {
 				String response = in.readLine();
-				System.out.println(response);
-				System.out.println(parser.getResponseType(response));
+				
 				// check the server response to check whether the alarm it already exists in the
 				// server
 				if (!response.isEmpty() && parser.Response(response) == parser.AlarmExists()) {
 					// if the alarm id already exists regenerate an new one and send it back
 					System.out.println("Alarm id exists -sending a new one");
-
+					//System.out.println(parser);
 					alarmId = "23-" + String.valueOf(random.getRandom(1, 80));
 					out.println(parser.auhtInit(alarmId));
+					
 				} else if (!response.isEmpty() && parser.getResponseType(response).equals("authToken")) {
+					//check if the server response has "authToken" field
 					try {
-						System.out.println(Auth.decrypt(key, parser.getAuthChallangeToken(response)));
+						//this generate the reply string by decrypting the authToken and adding it one and making the JSON request
 						String reply = parser.authChallangeReply(alarmId, (Auth.encrypt(key, String.valueOf(
 								(Integer.parseInt(Auth.decrypt(key, parser.getAuthChallangeToken(response))) + 1)))));
-						System.out.println(reply);
+						//send the message to the server
 						out.println(reply);
 						// break;
 					} catch (Exception e) {
-						// TODO: handle exception
+					
 					}
 
-					// System.out.println(cmd);
+					
 				} else if (!response.isEmpty() && parser.getResponseType(response).equals("authOk")) {
-					// System.out.println("Here");
+					// here it check if the server accepted the response with authToken and granted permission
+					//if so the get the token send by the server
+					//and store it in relevant alarm
 					sessionToken = parser.getSessionToken(response);
 					return true;
 
 				} else if (!response.isEmpty() && parser.getResponseType(response).equals("authFail")) {
+					//this is when server declined authorization
 					System.out.println("auth Failed");
 					System.out.println("Program Exist");
 					return false;
@@ -143,7 +147,7 @@ public class FireAlarm extends Timer implements SensorInterface {
 			}
 
 		} catch (Exception e) {
-			System.out.println(e);
+			//System.out.println(e);
 			return false;
 
 		}
@@ -155,15 +159,16 @@ public class FireAlarm extends Timer implements SensorInterface {
 		// Make connection
 
 		try {
+			//Make a socket connection on port 3001
 			socket = new Socket("localhost", 3001);
 			writer = new PrintWriter(socket.getOutputStream(), true);
 			reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 
 			System.out.println("Connected");
-
+			//check if the authentication is successfull
+			//if not exit the by closing the socket
 			if (!authenticate(writer, reader)) {
 				socket.close();
-
 			}
 
 			authState = true;
@@ -172,12 +177,13 @@ public class FireAlarm extends Timer implements SensorInterface {
 
 			System.out.println("\nListening to messages");
 
+			//after auth listen for server request messages
 			while (true) {
 				String response = reader.readLine();
-				System.out.println(response);
-
+				
 				if (!response.isEmpty() && parser.getResponseType(response).equals("sensorReading")) {
-					// System.out.println("Here");
+					//if server request a sensor reading
+					//send back the JSON message to the server with readings
 					writer.println(parser.sensorReadingMessage(String.valueOf(getTemperature()),
 							String.valueOf(getBatteryLevel()), String.valueOf(getSmokeLevel()),
 							String.valueOf(getCo2Level()), sessionToken, alarmId, parser.getClientId(response)));
@@ -186,11 +192,8 @@ public class FireAlarm extends Timer implements SensorInterface {
 			}
 
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-
+			
 		}
-
 	}
 
 	public static void main(String[] args) throws Exception {
@@ -198,6 +201,7 @@ public class FireAlarm extends Timer implements SensorInterface {
 		FireAlarm client = new FireAlarm();
 
 		System.out.println("Initiating Socket Thread...");
+		//this runnable seperate the socket connetion from main thread
 		Runnable runnable = new Runnable() {
 			@Override
 			public void run() {
@@ -220,6 +224,8 @@ public class FireAlarm extends Timer implements SensorInterface {
 		thread.start();
 		System.out.println("Socket connetions running seperatley...");
 
+		
+		//this  runnable handle the sensor reading at interval of 5 mins and this will repeatedly respawn every 5 mins
 		Runnable readerRunnable = new Runnable() {
 
 			@Override
@@ -240,10 +246,11 @@ public class FireAlarm extends Timer implements SensorInterface {
 									String.valueOf(client.getBatteryLevel()), String.valueOf(smoke),
 									String.valueOf(client.getCo2Level()));
 
-							// System.out.println(values.toJSONString());
-
+							System.out.println(values.toJSONString());
+							//add the readings to the array for storing until they are send
 							readings.add(values);
 							
+							//check for sensor anomalies .if there are any send message to the server
 							if(temp>50) {
 								writer.println(parser.alertMessage(alarmId+": High Temperature levels detected: "+temp+" c", alarmId, sessionToken));
 							}
@@ -252,24 +259,25 @@ public class FireAlarm extends Timer implements SensorInterface {
 							}
 							
 						} catch (Exception e) {
-							System.out.println(e);
-							// TODO: handle exception
+							
 						}
 					}
 				}
 
-				// }
+				
 
 			}
 		};
-
+		
+		
+		//this runnable runs every 60 minutes.this is responsible for sending the readings of the hour
 		Runnable senderRunnable = new Runnable() {
 
 			@Override
 			public void run() {
-				// System.out.println("sending Reading sensors " +authState);
+				
 				RequestParser parser = new RequestParser();
-
+				// send only if the sensor is authenticated
 				if (authState == true) {
 					synchronized (readings) {
 						System.out.println("sending Reading sensors");
@@ -281,15 +289,16 @@ public class FireAlarm extends Timer implements SensorInterface {
 			}
 		};
 
-		System.out.println("\nServices\n");
+		
 		Calendar rightNow = Calendar.getInstance();
 		ScheduledExecutorService readerService = Executors.newSingleThreadScheduledExecutor();
-		readerService.scheduleWithFixedDelay(readerRunnable, 60 - rightNow.get(Calendar.SECOND), 60, TimeUnit.SECONDS);
+		//Schedule the runnable to run every 5 mins
+		readerService.scheduleWithFixedDelay(readerRunnable, 5 - (rightNow.get(Calendar.MINUTE) % 10), 5, TimeUnit.MINUTES);
 
 		ScheduledExecutorService senderService = Executors.newScheduledThreadPool(2);
-		senderService.scheduleWithFixedDelay(senderRunnable, 6 - (rightNow.get(Calendar.MINUTE) % 10), 6,
-				TimeUnit.MINUTES);
-
+		//Schedule the runnable to run every 61 mins
+		senderService.scheduleWithFixedDelay(senderRunnable, 61- rightNow.get(Calendar.MINUTE) , 61,TimeUnit.MINUTES);
+		System.out.println("\nShedule Services running\n");
 	}
 
 }

@@ -90,7 +90,7 @@ public class RequestParser implements RequestParserInterface {
 	
 	}
 	
-
+	//message builder for a real time reading requested by the server
 	@Override
 	public String sensorReadingMessage(String temp,String battery,String smoke,String co2,String token,String alarmId,String requestId) {
 		JSONObject json=new JSONObject();
@@ -113,6 +113,7 @@ public class RequestParser implements RequestParserInterface {
 		return Base64.encodeBase64String((json.toJSONString().getBytes()));
 	}
 	
+	//message builder method used to in the hourly update sending
 	@Override
 	public String sensorReadingsMessage(JSONArray readings,String token,String alarmId) {
 		JSONObject json=new JSONObject();
@@ -121,11 +122,10 @@ public class RequestParser implements RequestParserInterface {
 		json.put("type", "sensorReading[]");
 		json.put("token", token);
 		json.put("readings", readings);
-		
-		//System.out.println(json.toJSONString());
 		return Base64.encodeBase64String((json.toJSONString().getBytes()));
 	}
 
+	//message builder for 5 minute readings that are embedded inside hourly reading message
 	@Override
 	public JSONObject sensorReadings(String temp, String battery, String smoke, String co2) {
 		JSONObject json=new JSONObject();
@@ -139,7 +139,7 @@ public class RequestParser implements RequestParserInterface {
 		json.put("co2", co2);
 		
 		
-		//System.out.println(json.toJSONString());
+		
 		return json;
 	}
 	@Override
@@ -168,6 +168,7 @@ public class RequestParser implements RequestParserInterface {
 		
 	}
 	
+	//generate a message to reply for the cipher challenge
 	@Override
 	public String authChallangeReply(String alarmId,String authNext) throws Exception{
 		JSONObject json=new JSONObject();
@@ -180,6 +181,7 @@ public class RequestParser implements RequestParserInterface {
 		return Base64.encodeBase64String((json.toJSONString().getBytes()));
 	}
 	
+	//get session token extracted from the response message
 	@Override
 	public String getSessionToken(String response) {
 		try {
@@ -203,6 +205,7 @@ public class RequestParser implements RequestParserInterface {
 		
 	}
 	
+	//return the id of the client that requested the reading
 	@Override
 	public String getClientId(String response) {
 		try {
@@ -225,6 +228,20 @@ public class RequestParser implements RequestParserInterface {
 		}
 	}
 
+	//generates the alert message in  reading anomalies
+	@Override
+	public String alertMessage(String msg,String alarmId,String token) {
+		JSONObject json=new JSONObject();
+		json.put("header", responseOk);
+		json.put("id", alarmId);
+		json.put("type", "alert");
+		json.put("token", token);		
+		Date date = new Date();	
+		json.put("message",dateFormat.format(date)+"\n\t"+ msg);		
+		
+		
+		return Base64.encodeBase64String((json.toJSONString().getBytes()));
+	}
 
 	/*
 	 * Request response states getter methods
@@ -265,24 +282,6 @@ public class RequestParser implements RequestParserInterface {
 		return invalidResponse;
 	}
 
-	@Override
-	public String alertMessage(String msg,String alarmId,String token) {
-		JSONObject json=new JSONObject();
-		json.put("header", responseOk);
-		json.put("id", alarmId);
-	
-		json.put("type", "alert");
-		json.put("token", token);
-		
-		Date date = new Date();;
-		
-	
-		json.put("message",dateFormat.format(date)+"\n\t"+ msg);
-		
-		
-		//System.out.println(json.toJSONString());
-		return Base64.encodeBase64String((json.toJSONString().getBytes()));
-	}
 
 	
 
